@@ -7,6 +7,15 @@
     <title>회사에서 살아남기</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-38FCHPTQ6W"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-38FCHPTQ6W');
+    </script>
     <style>
         body {
             touch-action: manipulation;
@@ -262,7 +271,7 @@
             const initialScenarios = [
                 {
                     title: "회의 불참 공모",
-                    text: "둘 다 중요한 회의를 ‘병원 예약’이란 핑계로 빠졌다. 상사가 ‘같은 병원?’이라며 웃는다.",
+                    text: "둘 다 중요한 회의를 '병원 예약'이란 핑계로 빠졌다. 상사가 '같은 병원?'이라며 웃는다.",
                     hint: "defend",
                     options: {
                         cooperate: "상사에게 솔직히 회의 빠졌다고 자백하고 같이 사과하자",
@@ -284,7 +293,7 @@
                 },
                 {
                     title: "메일 몰래 삭제",
-                    text: "실수로 보낸 기밀 메일을 몰래 지운 건 나, 공조해준 건 그 사람. 상사가 ‘메일 로그 보자’고 한다.",
+                    text: "실수로 보낸 기밀 메일을 몰래 지운 건 나, 공조해준 건 그 사람. 상사가 '메일 로그 보자'고 한다.",
                     hint: "betray",
                     options: {
                         cooperate: "둘이서 사실대로 밝히고 복구 방안을 제시하자",
@@ -306,7 +315,7 @@
                 },
                 {
                     title: "회식비 계산 누락",
-                    text: "영수증을 일부러 누락해 제출했다. 절반은 그 사람 몫이었다. 감사팀이 ‘왜 계산이 안 맞냐’고 묻는다.",
+                    text: "영수증을 일부러 누락해 제출했다. 절반은 그 사람 몫이었다. 감사팀이 '왜 계산이 안 맞냐'고 묻는다.",
                     hint: "betray",
                     options: {
                         cooperate: "둘이 영수증 재제출하고 금액 맞추자",
@@ -589,6 +598,12 @@
             els.choiceBtns.forEach(btn => btn.addEventListener('click', () => makeChoice(btn.dataset.choice)));
 
             function startGame() {
+                // GA 이벤트 - 게임 시작
+                gtag('event', 'game_start', {
+                    'event_category': 'gameplay',
+                    'event_label': 'new_game'
+                });
+
                 els.start.classList.add('hidden');
                 els.end.classList.add('hidden');
                 els.game.classList.remove('hidden');
@@ -614,6 +629,13 @@
                 gameState.currentScenario = sc;
                 els.title.textContent = sc.title;
                 els.text.textContent = sc.text;
+
+                // GA 이벤트 - 새 시나리오 로드
+                gtag('event', 'scenario_load', {
+                    'event_category': 'gameplay',
+                    'event_label': sc.title,
+                    'turn_number': gameState.currentTurn
+                });
 
                 // 버튼별 설명을 options에서 가져오도록 변경
                 els.choiceBtns.forEach(btn => {
@@ -658,6 +680,17 @@
                 gameState.playerChoices.push(choice);
                 gameState.opponentChoices.push(opp);
                 gameState.lastObserved = (choice === 'observe');
+
+                // GA 이벤트 - 선택 추적
+                gtag('event', 'player_choice', {
+                    'event_category': 'gameplay',
+                    'event_label': choice,
+                    'scenario_title': gameState.currentScenario.title,
+                    'turn_number': gameState.currentTurn,
+                    'opponent_choice': opp,
+                    'points_earned': res.points,
+                    'current_score': gameState.score
+                });
 
                 showResult(choice, opp, res);
                 updateUI();
@@ -772,6 +805,16 @@
             function nextTurn() {
                 if (els.resultArea && !els.resultArea.classList.contains('hidden')) els.resultArea.classList.add('hidden');
                 if (++gameState.currentTurn > gameState.maxTurns) return endGame();
+
+                // GA 이벤트 - 다음 턴 진행
+                gtag('event', 'next_turn', {
+                    'event_category': 'gameplay',
+                    'event_label': 'progress',
+                    'turn_number': gameState.currentTurn,
+                    'current_score': gameState.score,
+                    'completion_rate': (gameState.currentTurn / gameState.maxTurns * 100).toFixed(0) + '%'
+                });
+
                 updateUI();
                 loadScenario();
                 els.game.classList.add('fade-in');
@@ -793,12 +836,32 @@
                             c >= 40 ? '👶 유망한 신입사원! 앞으로 더 나아질 수 있어요' :
                                 c >= 30 ? '🐥 사회 초년병... 그래도 가능성은 보여요' :
                                     '☠️ 회사생활, 다시 생각해봐야 할 수도...';
+
+                // GA 이벤트 - 게임 종료
+                gtag('event', 'game_end', {
+                    'event_category': 'gameplay',
+                    'event_label': 'completion',
+                    'final_score': gameState.score,
+                    'cooperate_count': gameState.choiceStats.cooperate,
+                    'betray_count': gameState.choiceStats.betray,
+                    'defend_count': gameState.choiceStats.defend,
+                    'observe_count': gameState.choiceStats.observe
+                });
             }
 
             function updateUI() {
                 els.turn.textContent = gameState.currentTurn;
                 els.score.textContent = gameState.score;
                 els.bar.style.width = (gameState.currentTurn / gameState.maxTurns * 100) + '%';
+
+                // GA 이벤트 - 진행률 업데이트
+                if (gameState.currentTurn > 0) {
+                    gtag('event', 'progress_update', {
+                        'event_category': 'gameplay',
+                        'event_label': 'progress_percentage',
+                        'progress_percentage': (gameState.currentTurn / gameState.maxTurns * 100).toFixed(0)
+                    });
+                }
             }
 
             function getLabel(k) {

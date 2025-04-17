@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>회사에서 살아남기</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <style>
+        body {
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: none;
+            background-color: #f0f9ff;
+            color: #334155;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .choice-btn {
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .choice-btn:active {
+            transform: scale(0.95);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .popup {
+            animation: popup 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popup {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .bounce {
+            animation: bounce 0.5s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10%,
+            30%,
+            50%,
+            70%,
+            90% {
+                transform: translateX(-5px);
+            }
+
+            20%,
+            40%,
+            60%,
+            80% {
+                transform: translateX(5px);
+            }
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        .option-overlay {
+            transition: opacity 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="flex flex-col items-center justify-center text-center max-w-md w-full popup">
+            <h1 class="text-4xl font-bold mb-4 text-blue-600">회사에서 살아남기</h1>
+            <p class="mb-6 text-gray-600">매턴, 의심스러운 동료들 속에서 누구를 믿고,<br />언제 배신할지 판단하세요</p>
+            <button id="start-btn"
+                class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg text-lg transition duration-200 transform hover:scale-105">
+                게임 시작
+            </button>
+            <p class="mt-4 text-xs text-gray-500">총 10턴, 최고의 생존 점수를 기록해보세요</p>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="game-screen" class="max-w-md w-full hidden">
+            <!-- 상단 정보 -->
+            <div class="flex justify-between items-center mb-2 px-2">
+                <div class="text-gray-600 text-sm"><span id="current-turn">1</span>/10 턴</div>
+                <div class="text-lg font-bold text-gray-800">점수: <span id="score" class="text-blue-600">0</span></div>
+            </div>
+            <!-- 진행 바 -->
+            <div class="w-full bg-blue-100 rounded-full h-2 mb-4">
+                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full progress-bar" style="width: 10%"></div>
+            </div>
+            <!-- 시나리오 카드 -->
+            <div class="bg-white rounded-lg p-4 mb-4 shadow-lg popup border border-blue-200">
+                <h3 id="scenario-title" class="text-xl font-bold mb-2 text-blue-600">시나리오 제목</h3>
+                <p id="scenario-text" class="text-gray-700 mb-3">시나리오 내용이 여기에 표시됩니다.</p>
+                <p class="text-sm text-gray-500">당신의 선택은?</p>
+            </div>
+            <!-- 선택지 버튼 -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <button class="choice-btn bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg shadow"
+                    data-choice="cooperate">
+                    <div class="font-bold mb-1">협력</div>
+                    <div class="text-xs option-desc">설명</div>
+                </button>
+                <button class="choice-btn bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg shadow"
+                    data-choice="betray">
+                    <div class="font-bold mb-1">배신</div>
+                    <div class="text-xs option-desc">설명</div>
+                </button>
+                <button class="choice-btn bg-yellow-600 hover:bg-yellow-700 text-white py-3 px-4 rounded-lg shadow"
+                    data-choice="defend">
+                    <div class="font-bold mb-1">회피</div>
+                    <div class="text-xs option-desc">설명</div>
+                </button>
+                <button class="choice-btn bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg shadow"
+                    data-choice="observe">
+                    <div class="font-bold mb-1">눈치</div>
+                    <div class="text-xs option-desc">설명</div>
+                </button>
+            </div>
+            <!-- 결과 표시 영역 -->
+            <div id="result-area" class="hidden bg-white rounded-lg p-4 mb-4 shadow-lg popup border border-blue-200">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <div class="text-sm text-gray-500">당신의 선택</div>
+                        <div id="player-choice" class="font-bold text-lg text-gray-800"></div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">상대의 선택</div>
+                        <div id="opponent-choice" class="font-bold text-lg text-gray-800"></div>
+                    </div>
+                </div>
+                <div class="text-center mb-3">
+                    <div id="result-effect" class="text-2xl font-bold mb-1"></div>
+                    <div id="result-explanation" class="text-sm text-gray-600"></div>
+                </div>
+                <button id="next-turn-btn"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg shadow">
+                    다음 턴
+                </button>
+            </div>
+            <!-- 힌트 아이콘 -->
+            <div class="flex justify-end">
+                <button id="hint-btn" class="text-blue-500 hover:text-blue-700">
+                    <i class="fas fa-lightbulb mr-1"></i> 힌트
+                </button>
+            </div>
+        </div>
+
+        <!-- 게임 종료 화면 -->
+        <div id="end-screen" class="max-w-md w-full hidden text-center popup">
+            <h2 class="text-3xl font-bold mb-3 text-blue-600">게임 종료!</h2>
+            <div class="bg-white rounded-lg p-5 mb-4 shadow-lg border border-blue-200">
+                <p class="text-xl mb-2 text-gray-800">생존 점수</p>
+                <p id="final-score" class="text-4xl font-bold text-blue-600 mb-3">0</p>
+                <div class="mb-4">
+                    <p class="text-gray-600 mb-2">통계</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="bg-blue-50 p-2 rounded border border-blue-100 text-gray-700">협력: <span
+                                id="stat-cooperate">0</span>회</div>
+                        <div class="bg-blue-50 p-2 rounded border border-blue-100 text-gray-700">배신: <span
+                                id="stat-betray">0</span>회</div>
+                        <div class="bg-blue-50 p-2 rounded border border-blue-100 text-gray-700">회피: <span
+                                id="stat-defend">0</span>회</div>
+                        <div class="bg-blue-50 p-2 rounded border border-blue-100 text-gray-700">눈치: <span
+                                id="stat-observe">0</span>회</div>
+                    </div>
+                </div>
+                <p id="game-comment" class="text-gray-700 mb-4">게임 평가 메시지</p>
+                <button id="restart-btn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg text-lg transition duration-200 transform hover:scale-105">
+                    다시 도전하기
+                </button>
+            </div>
+        </div>
+
+        <!-- 힌트 모달 -->
+        <div id="hint-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+            <div class="bg-white rounded-lg p-5 m-4 max-w-md w-full popup border border-blue-200">
+                <h3 class="text-xl font-bold mb-3 text-blue-600">게임 힌트</h3>
+                <p class="text-gray-700 mb-3">상황 속 동료의 <span class="text-blue-600">미묘한 힌트</span>가 숨겨져 있습니다.</p>
+                <p class="text-gray-700 mb-3">각 선택이 주는 점수:</p>
+                <ul class="text-sm text-gray-600 mb-4 space-y-1">
+                    <li>• 둘 다 협력: +7점</li>
+                    <li>• 배신 vs 협력: +8점</li>
+                    <li>• 협력 vs 배신: -3점</li>
+                    <li>• 둘 다 배신: -4점</li>
+                    <li>• 회피 vs 배신: +2점</li>
+                    <li>• 눈치: 다음 턴 점수 ×1.5배 버프</li>
+                    <li>• 레어 크리티컬: 10% 확률로 +15점!</li>
+                </ul>
+                <button id="close-hint-btn"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg shadow">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialScenarios = [
+                {
+                    title: "회의 불참 공모",
+                    text: "둘 다 중요한 회의를 ‘병원 예약’이란 핑계로 빠졌다. 상사가 ‘같은 병원?’이라며 웃는다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "상사에게 솔직히 회의 빠졌다고 자백하고 같이 사과하자",
+                        betray: "동료가 주도했다고 몰아세우고 빠져나가자",
+                        defend: "병원 예약이었다고 끝까지 우겨서 빠져나가자",
+                        observe: "상사의 반응을 더 살핀 뒤 결정하자"
+                    }
+                },
+                {
+                    title: "대표님 케이크",
+                    text: "대표님 생일 케이크를 반만 먹었는데, 그 동료도 같은 행동을 하다 들켰다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "케이크 새로 사서 둘이 함께 사과하자",
+                        betray: "대부분을 동료가 먹었다고 책임 전가하자",
+                        defend: "난 몰랐다고 둘러대며 빠져나가자",
+                        observe: "동료의 표정과 상황을 보고 다음 행동을 정하자"
+                    }
+                },
+                {
+                    title: "메일 몰래 삭제",
+                    text: "실수로 보낸 기밀 메일을 몰래 지운 건 나, 공조해준 건 그 사람. 상사가 ‘메일 로그 보자’고 한다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "둘이서 사실대로 밝히고 복구 방안을 제시하자",
+                        betray: "삭제는 동료가 했다고 밀어붙이자",
+                        defend: "시스템 오류라고 둘러대며 시간 벌자",
+                        observe: "상사 눈치 보며 타이밍을 재자"
+                    }
+                },
+                {
+                    title: "이상한 발표자료",
+                    text: "프레젠테이션에 엉뚱한 사진이 섞였다. 만든 건 나지만, 검수는 그가 했다. 둘 다 입을 꾹 다물고 있다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "실수 인정하고 자료를 즉시 수정하자",
+                        betray: "검수 못 한 동료 탓으로 몰아가자",
+                        defend: "자동 삽입 오류라며 넘기자",
+                        observe: "상사의 반응을 보고 책임 소재를 정하자"
+                    }
+                },
+                {
+                    title: "회식비 계산 누락",
+                    text: "영수증을 일부러 누락해 제출했다. 절반은 그 사람 몫이었다. 감사팀이 ‘왜 계산이 안 맞냐’고 묻는다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "둘이 영수증 재제출하고 금액 맞추자",
+                        betray: "영수증 챙긴 건 동료라고 몰아세우자",
+                        defend: "시스템 오류라며 시간 벌자",
+                        observe: "감사팀 분위기 보며 전략 정하자"
+                    }
+                },
+                {
+                    title: "회의실 예약 꼼수",
+                    text: "회의실에서 팀원이랑 놀았다. 감사팀이 개별 면담을 한다. 들킨 건 맞고 누가 이를지 모른다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "장난 인정하고 사과해 벌점 최소화하자",
+                        betray: "회의실 사용 아이디어는 동료라며 떠넘기자",
+                        defend: "예약 시스템 착오라고 둘러대자",
+                        observe: "감사팀 질문을 보며 입장 정하자"
+                    }
+                },
+                {
+                    title: "대리 출근",
+                    text: "서로 출퇴근 카드를 찍어주기로 했다. 인사팀이 제보자를 용서해준다며 내 눈치를 본다.",
+                    hint: "cooperate",
+                    options: {
+                        cooperate: "둘이 한꺼번에 자백하고 감경을 노리자",
+                        betray: "대리 출근은 동료 부탁이었다며 발뺌하자",
+                        defend: "카드 오류라 주장하며 빠져나가자",
+                        observe: "인사팀 분위기를 살피며 타이밍 재자"
+                    }
+                },
+                {
+                    title: "개인 일정 공유 미스",
+                    text: "그와 공유한 연차 계획이 다른 팀원에게 퍼졌다. 상사가 정색하고 묻는다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "둘이 유출 사실 인정하고 사과하자",
+                        betray: "연차 계획 흘린 건 동료라고 지목하자",
+                        defend: "캘린더 버그라며 넘기자",
+                        observe: "상사 눈치 보며 책임 소재 가늠하자"
+                    }
+                },
+                {
+                    title: "클라우드 파일 삭제",
+                    text: "중요한 회의록이 사라졌다. 내가 지운 건 맞지만, 휴지통 비운 건 그 사람이다.",
+                    hint: "cooperate",
+                    options: {
+                        cooperate: "둘이 실수 인정하고 복구 시도하자",
+                        betray: "휴지통 비운 건 동료라며 몰아세우자",
+                        defend: "시스템 오류라며 시간 벌자",
+                        observe: "메시지 분위기 보며 태세 전환하자"
+                    }
+                },
+                {
+                    title: "업무용 채팅 욕설",
+                    text: "업무용 채팅방에 실수로 상사 욕설을 올렸다. 상사는 동료가 다 말했다고 한다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "둘이 사과하고 오해 풀자",
+                        betray: "욕은 동료가 먼저 썼다며 책임 회피하자",
+                        defend: "자동완성 실수라며 얼버무리자",
+                        observe: "상사 화난 정도를 보고 대응하자"
+                    }
+                },
+                {
+                    title: "근태 기록 조작",
+                    text: "둘 다 조퇴했지만 기록은 정상 퇴근으로 조작했다. 인사팀이 불일치를 발견했다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "기록 수정하고 벌점 감수하자",
+                        betray: "조퇴 기록 입력한 건 동료라며 몰아세우자",
+                        defend: "시스템 시간 오류라 주장하자",
+                        observe: "인사팀 조사 속도 보며 대응책 정하자"
+                    }
+                },
+                {
+                    title: "프로젝트 실패 은폐",
+                    text: "프로젝트 실패를 숨기고 성공한 것처럼 보고했다. 각자 감사팀 면담을 받는다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "실패 사실 밝히고 해결책 제시하자",
+                        betray: "보고서 작성한 동료 책임으로 돌리자",
+                        defend: "데이터 부족으로 판단 이르다며 미루자",
+                        observe: "감사팀 분위기를 살피자"
+                    }
+                },
+                {
+                    title: "사내 공모전 표절",
+                    text: "인터넷 자료를 표절해 제출했다. 심사위원이 '어디서 본 것 같다'고 한다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "표절 인정하고 작품 취소하자",
+                        betray: "자료 가져온 건 동료라고 몰아세우자",
+                        defend: "레퍼런스 참고라며 우겨보자",
+                        observe: "심사위원 반응을 보며 방향 잡자"
+                    }
+                },
+                {
+                    title: "성과 발표 대리",
+                    text: "내가 작성한 성과자료를 동료가 대신 발표했는데 틀렸다. 상사가 왜 직접 안 했냐고 묻는다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "잘못 인정하고 보완 약속하자",
+                        betray: "발표 틀린 건 동료 책임이라 선긋기",
+                        defend: "현장 오류라 주장하며 넘기자",
+                        observe: "상사 기분 살피며 수습책 모색"
+                    }
+                },
+                {
+                    title: "협력사 비밀 유출",
+                    text: "회의 도중 협력사 기밀을 흘렸다. 그가 웃으며 맞장구쳤다. 협력사 항의가 들어왔다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "사과하고 보안 대책 제시하자",
+                        betray: "비밀 말한 건 동료라며 선긋기",
+                        defend: "회의 오해라며 논점 흐리자",
+                        observe: "협력사 분노 수위를 보며 판단하자"
+                    }
+                },
+                {
+                    title: "사내 게시판 장난",
+                    text: "익명 게시판에 장난 글을 올렸다. 인사팀이 조사 중이다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "장난 인정하고 삭제 요청하자",
+                        betray: "아이디어 준 동료 탓하며 책임 회피",
+                        defend: "익명성 믿고 모른다 주장",
+                        observe: "인사팀 질문 방향 파악하며 결정하자"
+                    }
+                },
+                {
+                    title: "유령 회의 참석",
+                    text: "참석도 안 한 회의에 출석체크만 했다. 팀장이 참석자에게 직접 물어보기 시작했다.",
+                    hint: "cooperate",
+                    options: {
+                        cooperate: "자백하고 벌점 최소화 설득하자",
+                        betray: "출석 체크는 동료가 부탁했다며 몰아가기",
+                        defend: "시스템 자동 체크라 주장",
+                        observe: "팀장 반응을 보며 전략 수립"
+                    }
+                },
+                {
+                    title: "무단 외근",
+                    text: "회사와 무관한 곳으로 외근 갔다. 상사가 위치 기록 제출을 요구한다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "외근 사실 인정하고 정정 보고하자",
+                        betray: "외근 목적은 동료가 정했다며 밀기",
+                        defend: "GPS 오류라 주장하며 시간 벌자",
+                        observe: "상사 태도를 살피며 입장 조율"
+                    }
+                },
+                {
+                    title: "채용 추천 조작",
+                    text: "지인의 이력서를 수정해줬다. 추천인으로 날 올렸고 채용팀이 사실 여부를 확인 중이다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "사실 인정하고 채용팀에 사과하자",
+                        betray: "이력서 수정은 동료가 했다며 강조",
+                        defend: "단순 오타 수정이었다고 우기기",
+                        observe: "채용팀 질문 경향 살피며 준비하자"
+                    }
+                },
+                {
+                    title: "직원 평가 위조",
+                    text: "서로 점수를 높여줬다. 시스템이 비정상 패턴을 의심한다.",
+                    hint: "cooperate",
+                    options: {
+                        cooperate: "평가 조작 인정하고 점수 재입력하자",
+                        betray: "동료가 먼저 조작했다고 밀어넣기",
+                        defend: "시스템 오류라 주장하며 시간 벌기",
+                        observe: "검토팀 반응을 보며 다음 수"
+                    }
+                },
+                {
+                    title: "상사 성대모사 유출",
+                    text: "점심시간 성대모사를 찍은 동료가 실수로 팀 채팅방에 올렸다. 이미 모두 봤다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "둘이 사과 영상 찍어 올리자",
+                        betray: "영상 올린 건 동료라며 강변하자",
+                        defend: "파일 전송 오류라며 실수 강조",
+                        observe: "팀 반응을 살피며 사과 타이밍 조정"
+                    }
+                },
+                {
+                    title: "보고서 무임승차",
+                    text: "보고서에 내 이름만 넣었지만, 실제 작업은 반을 그가 도와줬다. 상사가 기여도를 따진다.",
+                    hint: "defend",
+                    options: {
+                        cooperate: "기여도 솔직히 밝히고 공동 책임 제안",
+                        betray: "내가 90% 했다며 동료 공헌 깎기",
+                        defend: "분업한 것뿐이라며 문제 없다고 주장",
+                        observe: "상사 반응 보며 입장 선택하자"
+                    }
+                },
+                {
+                    title: "복사기 파손",
+                    text: "복사기가 고장 났다. 어제 둘이 사적인 문서를 인쇄했었다.",
+                    hint: "observe",
+                    options: {
+                        cooperate: "사용 사실 인정하고 수리 신청하자",
+                        betray: "동료가 이상한 문서 인쇄했다고 몰아세우자",
+                        defend: "원래 고장 나 있던 듯 주장하자",
+                        observe: "설비팀 조사 결과를 보고 결정하자"
+                    }
+                },
+                {
+                    title: "야근 식비 이중 청구",
+                    text: "야근 식대를 둘 다 이중으로 청구했다. 회계팀이 확인 요청을 했다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "금액 환급하고 실수 인정하자",
+                        betray: "이중 청구는 동료가 했다며 선긋기",
+                        defend: "회계 시스템 버그라 주장하자",
+                        observe: "회계팀 태도를 보며 전략 짜자"
+                    }
+                },
+                {
+                    title: "외부 강의 유출",
+                    text: "내가 수강 중인 유료 강의를 공유했고, 동료가 팀 메신저에 링크를 퍼뜨렸다. 법무팀이 추적 중이다.",
+                    hint: "betray",
+                    options: {
+                        cooperate: "저작권 침해 인정하고 링크 삭제하자",
+                        betray: "링크 뿌린 건 동료라며 몰아가기",
+                        defend: "정식 홍보 차원이었다고 변명하자",
+                        observe: "법무팀 조사 수위를 보며 대응하자"
+                    }
+                }
+
+            ];
+
+            const gameState = {
+                currentTurn: 1,
+                maxTurns: 10,
+                score: 0,
+                lastObserved: false,
+                defendStreak: 0,
+                choiceStats: { cooperate: 0, betray: 0, defend: 0, observe: 0 },
+                opponentChoices: [],
+                playerChoices: [],
+                remainingScenarios: []
+            };
+
+            const els = {
+                start: document.getElementById('start-screen'),
+                game: document.getElementById('game-screen'),
+                end: document.getElementById('end-screen'),
+                turn: document.getElementById('current-turn'),
+                score: document.getElementById('score'),
+                bar: document.getElementById('progress-bar'),
+                title: document.getElementById('scenario-title'),
+                text: document.getElementById('scenario-text'),
+                choiceBtns: document.querySelectorAll('.choice-btn'),
+                descs: document.querySelectorAll('.option-desc'),
+                resultArea: document.getElementById('result-area'),
+                playerChoice: document.getElementById('player-choice'),
+                opponentChoice: document.getElementById('opponent-choice'),
+                resultEffect: document.getElementById('result-effect'),
+                resultExplanation: document.getElementById('result-explanation'),
+                nextBtn: document.getElementById('next-turn-btn'),
+                finalScore: document.getElementById('final-score'),
+                restartBtn: document.getElementById('restart-btn'),
+                hintBtn: document.getElementById('hint-btn'),
+                closeHintBtn: document.getElementById('close-hint-btn'),
+                hintModal: document.getElementById('hint-modal'),
+                stats: {
+                    coop: document.getElementById('stat-cooperate'),
+                    betray: document.getElementById('stat-betray'),
+                    defend: document.getElementById('stat-defend'),
+                    observe: document.getElementById('stat-observe')
+                },
+                comment: document.getElementById('game-comment')
+            };
+
+            els.start.querySelector('#start-btn').addEventListener('click', startGame);
+            els.nextBtn.addEventListener('click', nextTurn);
+            els.restartBtn.addEventListener('click', startGame);
+            els.hintBtn.addEventListener('click', () => els.hintModal.classList.remove('hidden'));
+            els.closeHintBtn.addEventListener('click', () => els.hintModal.classList.add('hidden'));
+            els.choiceBtns.forEach(btn => btn.addEventListener('click', () => makeChoice(btn.dataset.choice)));
+
+            function startGame() {
+                els.start.classList.add('hidden');
+                els.end.classList.add('hidden');
+                els.game.classList.remove('hidden');
+                resetGame();
+                nextTurn();
+            }
+
+            function resetGame() {
+                gameState.currentTurn = 0;
+                gameState.score = 0;
+                gameState.lastObserved = false;
+                gameState.defendStreak = 0;
+                Object.keys(gameState.choiceStats).forEach(k => gameState.choiceStats[k] = 0);
+                gameState.opponentChoices = [];
+                gameState.playerChoices = [];
+                // 시나리오 복제
+                gameState.remainingScenarios = initialScenarios.map(s => ({ ...s }));
+            }
+
+            function loadScenario() {
+                const idx = Math.floor(Math.random() * gameState.remainingScenarios.length);
+                const sc = gameState.remainingScenarios.splice(idx, 1)[0];
+                gameState.currentScenario = sc;
+                els.title.textContent = sc.title;
+                els.text.textContent = sc.text;
+
+                // 버튼별 설명을 options에서 가져오도록 변경
+                els.choiceBtns.forEach(btn => {
+                    const key = btn.dataset.choice;
+                    const descDiv = btn.querySelector('.option-desc');
+                    descDiv.textContent = sc.options[key];
+                    btn.disabled = false;
+                });
+
+                els.resultArea.classList.add('hidden');
+            }
+
+
+
+
+            function makeChoice(choice) {
+                els.choiceBtns.forEach(b => b.disabled = true);
+                const wasObs = gameState.lastObserved;
+                const hint = gameState.currentScenario.hint;
+                const opp = determineOpponentChoice(hint, wasObs);
+                const res = calculateResult(choice, opp);
+
+                if (wasObs) {
+                    res.points = Math.round(res.points * 1.5);
+                    res.effect = (res.points >= 0 ? '+' : '') + res.points + '점! (버프)';
+                    res.explanation += ' 관찰 버프 적용.';
+                }
+                if (choice === 'defend' && opp === 'betray') gameState.defendStreak++;
+                else gameState.defendStreak = 0;
+                if (gameState.defendStreak >= 2) {
+                    res.points += 3;
+                    res.explanation += ' 연속 회피 보너스 +3점!';
+                }
+                if (Math.random() < 0.1) {
+                    res.points += 15;
+                    res.effect = '+15점!! (레어크리티컬)';
+                    res.explanation += ' 레어 크리티컬 발생!';
+                }
+
+                gameState.score += res.points;
+                gameState.choiceStats[choice]++;
+                gameState.playerChoices.push(choice);
+                gameState.opponentChoices.push(opp);
+                gameState.lastObserved = (choice === 'observe');
+
+                showResult(choice, opp, res);
+                updateUI();
+            }
+
+            function determineOpponentChoice(hint, wasObs) {
+                let base = 0.25;
+                let bonus = wasObs ? 0.6 : 0.4;
+                let ch = { cooperate: base, betray: base, defend: base, observe: base };
+                ch[hint] += bonus;
+                let total = Object.values(ch).reduce((a, b) => a + b, 0);
+                for (let k in ch) ch[k] /= total;
+                let rnd = Math.random(), cum = 0;
+                for (let c of ['cooperate', 'betray', 'defend', 'observe']) {
+                    cum += ch[c];
+                    if (rnd <= cum) return c;
+                }
+                return 'cooperate';
+            }
+
+            function calculateResult(p, o) {
+                let r = { points: 0, effect: '', explanation: '' };
+                if (p === 'cooperate') {
+                    if (o === 'cooperate') {
+                        r.points = 7;
+                        r.effect = '+7점!';
+                        r.explanation = '👏 완벽한 팀워크! 둘이서 위기를 기회로 바꿨다!';
+                    } else if (o === 'betray') {
+                        r.points = -3;
+                        r.effect = '-3점';
+                        r.explanation = '💔 진심을 줬더니, 뒤통수가 돌아왔다...';
+                    } else if (o === 'defend') {
+                        r.points = 2;
+                        r.effect = '+2점';
+                        r.explanation = '🤝 손을 내밀었지만, 상대는 슬쩍 빠졌다.';
+                    } else {
+                        r.points = 3;
+                        r.effect = '+3점';
+                        r.explanation = '🔍 믿었더니 지켜봤다? 애매하지만 손해는 아니다.';
+                    }
+                } else if (p === 'betray') {
+                    if (o === 'cooperate') {
+                        r.points = 8;
+                        r.effect = '+8점!';
+                        r.explanation = '😈 와르르 무너졌다! 상대의 믿음을 이용해 대이득!';
+                    } else if (o === 'betray') {
+                        r.points = -4;
+                        r.effect = '-4점';
+                        r.explanation = '🔥 치고 박고! 서로 찔러봤자 잿더미만 남았다.';
+                    } else if (o === 'defend') {
+                        r.points = 0;
+                        r.effect = '±0점';
+                        r.explanation = '🤷‍♂️ 찔렀지만 허공을 베었다. 무의미한 시도.';
+                    } else {
+                        r.points = 5;
+                        r.effect = '+5점';
+                        r.explanation = '🕵️‍♂️ 상대가 눈치 보는 사이, 뒤통수를 정확히 후려쳤다!';
+                    }
+                } else if (p === 'defend') {
+                    if (o === 'cooperate') {
+                        r.points = 2;
+                        r.effect = '+2점';
+                        r.explanation = '😬 굳이 숨었는데, 사실 숨을 필요가 없었네.';
+                    } else if (o === 'betray') {
+                        r.points = 2;
+                        r.effect = '+2점';
+                        r.explanation = '💨 순발력 발동! 날카로운 칼날을 피하고 반격 준비 완료!';
+                    } else if (o === 'defend') {
+                        r.points = 1;
+                        r.effect = '+1점';
+                        r.explanation = '😐 둘 다 몸 사렸다. 긴장만 가득한 조용한 한 판.';
+                    } else {
+                        r.points = 1;
+                        r.effect = '+1점';
+                        r.explanation = '👀 숨고 지켜보고, 서로 간보는 상황. 미묘하게 올라간 점수.';
+                    }
+                } else {
+                    if (o === 'cooperate') {
+                        r.points = 3;
+                        r.effect = '+3점';
+                        r.explanation = '📈 조용히 관찰했지만, 결과는 훈훈했다. 이득 챙김.';
+                    } else if (o === 'betray') {
+                        r.points = 0;
+                        r.effect = '±0점';
+                        r.explanation = '🤔 느낌이 쎄했는데... 예상은 했지만 손에 쥔 건 없다.';
+                    } else if (o === 'defend') {
+                        r.points = 1;
+                        r.effect = '+1점';
+                        r.explanation = '👣 눈치만 보다가 회피한 상대를 따라갔다. 큰 일은 없었다.';
+                    } else {
+                        r.points = 2;
+                        r.effect = '+2점';
+                        r.explanation = '🔮 서로 눈치만 보다가 정보만 살짝 주고받은 느낌.';
+                    }
+                }
+                return r;
+            }
+
+
+            function showResult(p, o, r) {
+                els.playerChoice.textContent = getLabel(p);
+                els.opponentChoice.textContent = getLabel(o);
+                els.resultEffect.textContent = r.effect;
+                els.resultExplanation.textContent = r.explanation;
+                els.resultArea.classList.remove('hidden');
+                els.resultArea.classList.add('popup');
+                if (r.points > 0) { els.resultEffect.classList.add('bounce'); els.resultEffect.style.color = '#4ade80'; }
+                else if (r.points < 0) { els.resultEffect.classList.add('shake'); els.resultEffect.style.color = '#f87171'; }
+                setTimeout(() => els.resultEffect.classList.remove('bounce', 'shake'), 500);
+            }
+
+            function nextTurn() {
+                if (els.resultArea && !els.resultArea.classList.contains('hidden')) els.resultArea.classList.add('hidden');
+                if (++gameState.currentTurn > gameState.maxTurns) return endGame();
+                updateUI();
+                loadScenario();
+                els.game.classList.add('fade-in');
+                setTimeout(() => els.game.classList.remove('fade-in'), 500);
+            }
+
+            function endGame() {
+                els.game.classList.add('hidden');
+                els.end.classList.remove('hidden');
+                els.finalScore.textContent = gameState.score;
+                els.stats.coop.textContent = gameState.choiceStats.cooperate;
+                els.stats.betray.textContent = gameState.choiceStats.betray;
+                els.stats.defend.textContent = gameState.choiceStats.defend;
+                els.stats.observe.textContent = gameState.choiceStats.observe;
+                const c = gameState.score;
+                els.comment.textContent =
+                    c >= 60 ? '🏆 신과 함께, 당신은 사내정치의 신!' :
+                        c >= 50 ? '💼 노련한 비즈니스맨! 당신의 판단은 예리했다' :
+                            c >= 40 ? '👶 유망한 신입사원! 앞으로 더 나아질 수 있어요' :
+                                c >= 30 ? '🐥 사회 초년병... 그래도 가능성은 보여요' :
+                                    '☠️ 회사생활, 다시 생각해봐야 할 수도...';
+            }
+
+            function updateUI() {
+                els.turn.textContent = gameState.currentTurn;
+                els.score.textContent = gameState.score;
+                els.bar.style.width = (gameState.currentTurn / gameState.maxTurns * 100) + '%';
+            }
+
+            function getLabel(k) {
+                return k === 'cooperate' ? '협력' : k === 'betray' ? '배신' : k === 'defend' ? '회피' : '눈치';
+            }
+
+            loadScenario(); // 초기 로드
+        });
+    </script>
+</body>
+
+</html>
